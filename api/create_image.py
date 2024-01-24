@@ -13,10 +13,11 @@ class CreateImage(Resource):
     def post(self):
         prompt = request.json['message']  # 뷰에서 넘긴 메세지 받기
         print('받은 메세지:', prompt)
-        image_path = generate_image(prompt, client)
+        image_path, image_name = generate_image(prompt, client)
         image_url = '/' + image_path.replace('\\', '/')
         print('보내는 메세지:', image_url)
-        return jsonify({"image_url": image_url})
+        print('보내는 메세지:', image_name)
+        return jsonify({"image_url": image_url, "image_name": image_name})
 
 # 폴더 생성 함수
 def create_folder_if_not_exists(folder_path):
@@ -65,5 +66,5 @@ def generate_image(prompt, client):
     print('이미지 경로:', image_url)
     urllib.request.urlretrieve(image_url, image_path)
 
-    return image_path
+    return image_path, image_name
 
