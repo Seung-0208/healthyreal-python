@@ -4,7 +4,7 @@
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/api" isTestSource="false" />
     </content>
-    <orderEntry type="jdk" jdkName="Team_api" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Team_python" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>
