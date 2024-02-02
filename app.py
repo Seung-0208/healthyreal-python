@@ -4,6 +4,7 @@ from flask_cors import CORS
 from create_image import CreateImage
 from crawling import areaCrawling
 from chat_AI import ChatAI
+from api.recipeCrawling_Api import recipeCrawlingAPI
 
 #플라스크 앱 생성
 app = Flask(__name__)
@@ -14,6 +15,7 @@ api = Api(app)
 api.add_resource(CreateImage, '/CreateIm')
 api.add_resource(areaCrawling, '/areaCrawling')
 api.add_resource(ChatAI, '/ChatAI')
+api.add_resource(recipeCrawlingAPI, '/recipeCrawlingAPI')
 api.decorators=[CORS()]
 
 if __name__ == '__main__':
