@@ -3,6 +3,8 @@ from flask_restful import Api
 from flask_cors import CORS
 from create_image import CreateImage
 from crawling import areaCrawling
+from chat_AI import ChatAI
+from recipeCrawling_Api import recipeCrawlingAPI
 from text_emotion_detect import TextEmotionDetection
 
 #플라스크 앱 생성
@@ -13,6 +15,8 @@ api = Api(app)
 
 api.add_resource(CreateImage, '/CreateIm')
 api.add_resource(areaCrawling, '/areaCrawling')
+api.add_resource(ChatAI, '/ChatAI')
+api.add_resource(recipeCrawlingAPI, '/recipeCrawlingAPI')
 api.add_resource(TextEmotionDetection, '/diary')
 api.decorators=[CORS()]
 
