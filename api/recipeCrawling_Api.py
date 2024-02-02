@@ -11,7 +11,7 @@ from selenium.webdriver import ActionChains
 from flask import request
 from flask_restful import Resource
 from selenium.webdriver.common.keys import Keys
-from api.basic_fuc import db_conn, query_insert, db_disconn, query_select
+from basic_fuc import db_conn, query_insert, db_disconn, query_select
 
 #유저가 검색하면 크롤링 후 DB에 저장하는 API
 class recipeCrawlingAPI(Resource):
@@ -27,7 +27,7 @@ def basic_setting(urllink):
     # 웹드라이버를 위한 Service객체 생성
     service = Service(executable_path=driver_path)
     options = webdriver.ChromeOptions()
-    # options.add_argument("--headless")  # headless 모드 설정
+    options.add_argument("--headless")  # headless 모드 설정
     # 자동종료 막기
     options.add_experimental_option("detach", True)
     driver = webdriver.Chrome(service=service, options=options)

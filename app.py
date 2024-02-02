@@ -4,7 +4,7 @@ from flask_cors import CORS
 from create_image import CreateImage
 from crawling import areaCrawling
 from chat_AI import ChatAI
-from api.recipeCrawling_Api import recipeCrawlingAPI
+from recipeCrawling_Api import recipeCrawlingAPI
 
 #플라스크 앱 생성
 app = Flask(__name__)

@@ -1,5 +1,5 @@
 
-from api.db_connection import connect_to_oracle
+from db_connection import connect_to_oracle
 
 def db_conn():
     # 오라클 데이터베이스에 연결
