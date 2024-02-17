@@ -39,6 +39,6 @@ class TextEmotionDetection(Resource):
         if response['status'] == 'SUCCESS':
             answer = response['messages'][len(messages) - 1]['content']
             print(f'챗봇:{answer}')
-            return {'answer':answer, 'score':score}
+            return {'answer':answer, 'score':score, 'mag':mag}
         else:
             print(messages)
