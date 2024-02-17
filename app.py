@@ -2,10 +2,12 @@ from flask import Flask
 from flask_restful import Api
 from flask_cors import CORS
 from create_image import CreateImage
-from crawling import areaCrawling
+from area_crawling import areaCrawling
 from chat_AI import ChatAI
 from recipeCrawling_Api import recipeCrawlingAPI
 from text_emotion_detect import TextEmotionDetection
+from Weather_Info import weather_info
+from food_ocr import foodOcr
 
 #플라스크 앱 생성
 app = Flask(__name__)
@@ -18,6 +20,8 @@ api.add_resource(areaCrawling, '/areaCrawling')
 api.add_resource(ChatAI, '/ChatAI')
 api.add_resource(recipeCrawlingAPI, '/recipeCrawlingAPI')
 api.add_resource(TextEmotionDetection, '/diary')
+api.add_resource(weather_info, '/weatherInfo')
+api.add_resource(foodOcr, '/foodOcr')
 api.decorators=[CORS()]
 
 if __name__ == '__main__':
