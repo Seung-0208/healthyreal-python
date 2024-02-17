@@ -1,220 +1,131 @@
-from imutils.perspective import four_point_transform
-from imutils.contours import sort_contours
-import matplotlib.pyplot as plt
-import pytesseract
-import imutils
+from flask import request
+from flask_restful import Resource
 import cv2
-import re
-import requests
 import numpy as np
+from google.cloud import vision
+import re
+from PIL import Image
+import logging
 
-def plt_imshow(title='image', img=None, figsize=(8, 5)):
-    # 새로운 그림을 생성하고, 그림의 크기를 figsize로 설정합니다.
-    plt.figure(figsize=figsize)
+# 스케일링 요소 설정
+scale_factor = 2
+# 이미지 전처리 및 자르기
+section_ratio = (0.0, 0.1, 0.7, 0.5)
 
-    # 만약 img가 리스트인 경우, 여러 이미지를 하나의 행에 나란히 그립니다.
-    if type(img) == list:
-        # 만약 title도 리스트인 경우, 각 이미지의 타이틀로 사용합니다.
-        if type(title) == list:
-            titles = title
-        else:
-            # 만약 title이 리스트가 아닌 경우, 모든 이미지의 타이틀로 사용합니다.
-            titles = []
-            for i in range(len(img)):
-                titles.append(title)
+class inOcr(Resource):
+    def post(self):
+        # 뷰에서 받은 이미지 데이터
+        image_file = request.files.get('file')
 
-        for i in range(len(img)):
-            # 이미지가 흑백 이미지인 경우, RGB 이미지로 변환합니다.
-            if len(img[i].shape) <= 2:
-                rgbImg = cv2.cvtColor(img[i], cv2.COLOR_GRAY2RGB)
-            else:
-                # 이미지가 컬러 이미지인 경우, BGR에서 RGB로 변환합니다.
-                rgbImg = cv2.cvtColor(img[i], cv2.COLOR_BGR2RGB)
+        if image_file:
+            logging.info('Received file: %s', image_file.filename)
+            logging.info('File contents: %s', image_file.read())
 
-            # 이미지를 그립니다.
-            plt.subplot(1, len(img), i + 1), plt.imshow(rgbImg)
-            plt.title(titles[i])
-            plt.xticks([]), plt.yticks([])
+            image_file.seek(0)  # Move file pointer back to start after reading
+            image = Image.open(image_file.stream)
+            image_np = np.array(image)
 
-        plt.show()
-    else:
-        # img가 리스트가 아닌 경우, 하나의 이미지만 그립니다.
-        if len(img.shape) < 3:
-            rgbImg = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-        else:
-            rgbImg = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            processed_image = make_scan_image(image_np, section_ratio, scale_factor)
 
-        plt.imshow(rgbImg)
-        plt.title(title)
-        plt.xticks([]), plt.yticks([])
-        plt.show()
+            # OCR 수행
+            texts = detect_text(processed_image)
 
-
-url = 'https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.yohemite.com%2F99%2F%3Fq%3DYToxOntzOjEyOiJrZXl3b3JkX3R5cGUiO3M6MzoiYWxsIjt9%26bmode%3Dview%26idx%3D14207305%26t%3Dboard&psig=AOvVaw08eZFXyFK7ZHS4pwjNO-95&ust=1707922177276000&source=images&cd=vfe&opi=89978449&ved=0CBIQjRxqFwoTCIju3obIqIQDFQAAAAAdAAAAABAH'
-
-image_nparray = np.asarray(bytearray(requests.get(url).content), dtype=np.uint8)
-org_image = cv2.imdecode(image_nparray, cv2.IMREAD_COLOR)
-
-plt_imshow("orignal image", org_image)
+            pattern = r'^\d*\.\d+$'
+            matched_texts = []
+            for text in texts:
+                if re.fullmatch(pattern, text):
+                    # 실수로 변환
+                    num = float(text)
+                    # 100 이상이면 100을 빼고 저장
+                    if num >= 140:
+                        num -= 100
+                    # 소수점 두 번째 자리에서 반올림
+                    num = round(num, 2)
+                    matched_texts.append(num)
+            return matched_texts  # OCR 결과 리턴
 
 
 
+def preprocess_image(image, scale_factor):
+    # 흑백 이미지로 변환
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # 노이즈 제거
+    denoised_image = cv2.fastNlMeansDenoising(gray_image, None, 10, 7, 21)
+
+    # 이미지 스케일링
+    resized_image = cv2.resize(denoised_image, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
+
+    return resized_image
+
+
+def make_scan_image(image, section_ratio, scale_factor):
+    # 이미지 전처리
+    image = preprocess_image(image, scale_factor)
+
+    # 이미지 자르기
+    h, w = image.shape[:2]
+    x, y, rw, rh = section_ratio
+    section = (int(w * x), int(h * y), int(w * rw), int(h * rh))
+    cropped = image[section[1]:section[1] + section[3], section[0]:section[0] + section[2]]
+
+    return cropped
+
+
+def detect_text(image):
+    client = vision.ImageAnnotatorClient()
+    # OpenCV 이미지를 임시 파일로 저장
+    cv2.imwrite('temp.png', image)
+    with open('temp.png', "rb") as image_file:
+        content = image_file.read()
+    image = vision.Image(content=content)
+    response = client.text_detection(image=image, image_context={"language_hints": ["ko"]})
+    texts = response.text_annotations
+    print("Texts:")
+    filtered_texts = []
+    for text in texts:
+        '''
+        print(f'\n"{text.description}"')
+        vertices = [
+            f"({vertex.x},{vertex.y})" for vertex in text.bounding_poly.vertices
+        ]
+        print("좌표: {}".format(",".join(vertices)))
+        '''
+        vertices = [(vertex.x, vertex.y) for vertex in text.bounding_poly.vertices]
+        # 텍스트 블록의 너비와 높이 계산
+        width = max(vertices, key=lambda x: x[0])[0] - min(vertices, key=lambda x: x[0])[0]
+        height = max(vertices, key=lambda x: x[1])[1] - min(vertices, key=lambda x: x[1])[1]
+
+        # 텍스트 블록의 너비와 높이를 기준으로 필터링
+        '''
+        if (150 <= vertices[0][0] <= 250) and (100 <= vertices[0][1] <= 340):
+            filtered_texts.append((text.description, vertices[0][1]))
+            print(f'\n"{text.description}"')
+            print("좌표: {}".format(",".join(map(str, vertices))))
+        '''
+        if (150 <= vertices[0][0] <= 500) and (350 <= vertices[0][1] <= 600) and (30 < width and 10 < height):
+            filtered_texts.append((text.description, vertices[0][1]))
+            print(f'\n"{text.description}"')
+            print("좌표: {}".format(",".join(map(str, vertices))))
+        if (150 <= vertices[0][0] <= 500) and (600 <= vertices[0][1] <= 750) and (30 < width and 10 < height):
+            filtered_texts.append((text.description, vertices[0][1]))
+            print(f'\n"{text.description}"')
+            print("좌표: {}".format(",".join(map(str, vertices))))
+
+
+    # y 좌표가 낮은 순으로 정렬
+    filtered_texts = sorted(filtered_texts, key=lambda x: x[1])
+    # y 좌표 정보를 제거하고 텍스트만 남김
+    filtered_texts = [text for text, _ in filtered_texts]
+    if response.error.message:
+        raise Exception(
+            "{}\nFor more info on error messages, check: "
+            "https://cloud.google.com/apis/design/errors".format(response.error.message)
+        )
+    return filtered_texts  # 필터링된 텍스트 반환
 
 
 
-def make_scan_image(image, width, ksize=(5, 5), min_threshold=75, max_threshold=200):
-    image_list_title = []
-    image_list = []
-
-    org_image = image.copy()
-    image = imutils.resize(image, width=width)
-    ratio = org_image.shape[1] / float(image.shape[1])
-
-    # 이미지를 grayscale로 변환하고 blur를 적용
-    # 모서리를 찾기위한 이미지 연산
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, ksize, 0)
-    edged = cv2.Canny(blurred, min_threshold, max_threshold)
-
-    image_list_title = ['gray', 'blurred', 'edged']
-    image_list = [gray, blurred, edged]
-
-    # contours를 찾아 크기순으로 정렬
-    cnts = cv2.findContours(edged.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cnts = imutils.grab_contours(cnts)
-    cnts = sorted(cnts, key=cv2.contourArea, reverse=True)
-
-    findCnt = None
-
-    # 정렬된 contours를 반복문으로 수행하며 4개의 꼭지점을 갖는 도형을 검출
-    for c in cnts:
-        peri = cv2.arcLength(c, True)
-        approx = cv2.approxPolyDP(c, 0.02 * peri, True)
-
-        # contours가 크기순으로 정렬되어 있기때문에 제일 첫번째 사각형을 영역으로 판단하고 break
-        if len(approx) == 4:
-            findCnt = approx
-            break
-
-    # 만약 추출한 윤곽이 없을 경우 오류
-    if findCnt is None:
-        raise Exception(("Could not find outline."))
-
-    output = image.copy()
-    cv2.drawContours(output, [findCnt], -1, (0, 255, 0), 2)
-
-    image_list_title.append("Outline")
-    image_list.append(output)
-
-    # 원본 이미지에 찾은 윤곽을 기준으로 이미지를 보정
-    transform_image = four_point_transform(org_image, findCnt.reshape(4, 2) * ratio)
-
-    plt_imshow(image_list_title, image_list)
-    plt_imshow("Transform", transform_image)
-
-    return transform_image
-
-receipt = make_scan_image(org_image, width=200, ksize=(5, 5), min_threshold=20, max_threshold=100)
-
-options = "--psm 4"
-text = pytesseract.image_to_string(cv2.cvtColor(receipt, cv2.COLOR_BGR2RGB), config=options)
-
-# OCR결과 출력
-print("[INFO] OCR결과:")
-print("==================")
-print(text)
-print("\n")
-
-gray = cv2.cvtColor(receipt, cv2.COLOR_BGR2GRAY)
-(H, W) = gray.shape
-
-rectKernel = cv2.getStructuringElement(cv2.MORPH_RECT, (30, 20))
-sqKernel = cv2.getStructuringElement(cv2.MORPH_RECT, (50, 21))
-
-gray = cv2.GaussianBlur(gray, (11, 11), 0)
-blackhat = cv2.morphologyEx(gray, cv2.MORPH_BLACKHAT, rectKernel)
-
-grad = cv2.Sobel(blackhat, ddepth=cv2.CV_32F, dx=1, dy=0, ksize=-1)
-grad = np.absolute(grad)
-(minVal, maxVal) = (np.min(grad), np.max(grad))
-grad = (grad - minVal) / (maxVal - minVal)
-grad = (grad * 255).astype("uint8")
-
-grad = cv2.morphologyEx(grad, cv2.MORPH_CLOSE, rectKernel)
-thresh = cv2.threshold(grad, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
-
-close_thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, sqKernel)
-close_thresh = cv2.erode(close_thresh, None, iterations=2)
-
-plt_imshow(["Original", "Blackhat", "Gradient", "Rect Close", "Square Close"],
-           [receipt, blackhat, grad, thresh, close_thresh], figsize=(16, 10))
-
-cnts = cv2.findContours(close_thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-cnts = imutils.grab_contours(cnts)
-cnts = sort_contours(cnts, method="top-to-bottom")[0]
-
-roi_list = []
-roi_title_list = []
-
-margin = 20
-receipt_grouping = receipt.copy()
-
-for c in cnts:
-    (x, y, w, h) = cv2.boundingRect(c)
-    ar = w // float(h)
-
-    if ar > 3.0 and ar < 6.5 and (W / 2) < x:
-        color = (0, 255, 0)
-        roi = receipt[y - margin:y + h + margin, x - margin:x + w + margin]
-        roi_list.append(roi)
-        roi_title_list.append("Roi_{}".format(len(roi_list)))
-    else:
-        color = (0, 0, 255)
-
-    cv2.rectangle(receipt_grouping, (x - margin, y - margin), (x + w + margin, y + h + margin), color, 2)
-    cv2.putText(receipt_grouping, "".join(str(ar)), (x, y - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.65, color, 2)
-
-    plt_imshow(["Grouping Image"], [receipt_grouping], figsize=(16, 10))
-
-plt_imshow(roi_title_list, roi_list, figsize=(16, 10))
-
-for roi in roi_list:
-    gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-    threshold_roi = cv2.threshold(gray_roi, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
-    roi_text = pytesseract.image_to_string(threshold_roi)
-    print(roi_text)
-
-def mergeResize(img, row=300, col=200):
-    IMG_COL = col  # 66
-
-    # row값에 따른 col값 변경
-    IMG_COL = int((row * IMG_COL) / row)
-
-    IMG_ROW = row
-    border_v = 0
-    border_h = 0
-
-    if (IMG_COL / IMG_ROW) >= (img.shape[0] / img.shape[1]):
-        border_v = int((((IMG_COL / IMG_ROW) * img.shape[1]) - img.shape[0]) / 2)
-    else:
-        border_h = int((((IMG_ROW / IMG_COL) * img.shape[0]) - img.shape[1]) / 2)
-    img = cv2.copyMakeBorder(img, top=border_v, bottom=border_v, left=0, right=border_h + border_h,
-                             borderType=cv2.BORDER_CONSTANT, value=(255, 255, 255))
-    img = cv2.resize(img, (IMG_ROW, IMG_COL))
-    return img
 
 
-for idx, roi in enumerate(roi_list):
-    if idx == 0:
-        mergeImg = mergeResize(roi)
-    else:
-        cropImg = mergeResize(roi)
-        mergeImg = np.concatenate((mergeImg, cropImg), axis=0)
 
-threshold_mergeImg = cv2.threshold(mergeImg, 150, 255, cv2.THRESH_BINARY)[1]
-plt_imshow(["Merge Image"], [threshold_mergeImg])
-merge_Img_text = pytesseract.image_to_string(threshold_mergeImg)
-print(merge_Img_text)
-
-phoneNums = re.findall(r'[\+\(]?[1-9][0-9 .\-\(\)]{8,}[0-9]', text)
-phoneNums

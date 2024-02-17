@@ -8,6 +8,7 @@ from recipeCrawling_Api import recipeCrawlingAPI
 from text_emotion_detect import TextEmotionDetection
 from Weather_Info import weather_info
 from food_ocr import foodOcr
+from OCR import inOcr
 
 #플라스크 앱 생성
 app = Flask(__name__)
@@ -22,6 +23,7 @@ api.add_resource(recipeCrawlingAPI, '/recipeCrawlingAPI')
 api.add_resource(TextEmotionDetection, '/diary')
 api.add_resource(weather_info, '/weatherInfo')
 api.add_resource(foodOcr, '/foodOcr')
+api.add_resource(inOcr, '/ocr')
 api.decorators=[CORS()]
 
 if __name__ == '__main__':
