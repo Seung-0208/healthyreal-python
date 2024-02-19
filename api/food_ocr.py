@@ -1,5 +1,5 @@
 from flask_restful import Resource
-from flask import request,make_response
+from flask import request, make_response, jsonify
 import base64
 from PIL import Image
 import json
@@ -16,6 +16,7 @@ class foodOcr(Resource):
         image_memory = Image.open(io.BytesIO(image_b64))
         image_memory.save('./static/images_foodOcr/new.jpg')
         results = self.model.predict(['./static/images_foodOcr/new.jpg'],save=True)
+
         print('results\n',results)
         print('results[0].save_dir\n', results[0].save_dir)
         with open(os.path.join(results[0].save_dir, 'new.jpg'),'rb') as f:

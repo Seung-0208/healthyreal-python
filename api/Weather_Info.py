@@ -6,12 +6,16 @@ from flask_restful import Resource
 APIKEY = "56ce4888feecb9827e0e78ecdff1f09b"
 LANG = "kr"
 class weather_info(Resource):
-    # def post(self):
-    #     city = request.json['city']
-    #     weatherData = getweather(city)
-    #     return weatherData
+    def post(self):
+        location = request.json['location']
+        print(location)
+        city = areainfo(location)
+        weatherData = getweather(city)
+        return weatherData
     def get(self):
-        city = request.args.get('city')
+        location = request.args.get('location')
+        print(location)
+        city = areainfo(location)
         weatherData = getweather(city)
         return weatherData
 
@@ -20,6 +24,7 @@ def getweather(city):
     result = requests.get(api)
     data = json.loads(result.text)
     # # 지역 : name
+    print(data)
     print(data["name"],"의 날씨입니다.")
     # 자세한 날씨 : weather - description
     print("날씨는 ",data["weather"][0]["description"],"입니다.")
@@ -85,7 +90,6 @@ def areainfo(city):
     elif (city == '서산'):return 'Seosan CIty'
     elif (city == '예산'):return 'Yesan'
     elif (city == '홍성'):return 'Hongseong'
-    elif (city == '운암리'):return 'Unam-ni'
     elif (city == '천안'):return 'Cheonan'
     elif (city == '공주'):return 'Gongju'
     elif (city == '논산'):return 'Nonsan'
@@ -97,7 +101,6 @@ def areainfo(city):
     elif (city == '성남'):return 'Seongnam-si'
     elif (city == '괴내'): return 'Goenae'
     elif (city == '연천'):return 'Yeoncheon-gun'
-
 
     elif (city == '대전'):return 'Daejeon'
     elif (city == '장골'):return 'Janggol'
@@ -152,23 +155,17 @@ def areainfo(city):
     elif (city == '문경'):return 'Mungyeong'
     elif (city == '청송'):return 'Cheongsong gun'
     elif (city == '제주'):return 'Jeju City'
-    elif (city == '수부말'):return 'Subu-mal'
     elif (city == '홍천'):return 'Hongchon'
     elif (city == '협평'):return 'Hupyong'
-    elif (city == '판학동'):return 'Panghak-tong'
-    elif (city == '퍼둘밭'):return 'Podulbat'
     elif (city == '동해'):return 'Tonghae'
     elif (city == '강릉'):return 'Gangneung'
     elif (city == '양양'):return 'Yangyang'
     elif (city == '인제'):return 'Inje'
     elif (city == '양구'):return 'Yanggu'
     elif (city == '화천'):return 'Hwacheon'
-    elif (city == '명월리'):return 'Myongoli-ri'
-    elif (city == '우물목'):return 'umulmok'
-    elif (city == '운살리'):return 'Unal-li'
-    elif (city == '연천군'):return 'Yeoncheon-gun'
-    elif (city == '원주'):return 'Wonju'
+    elif (city == '연천'):return 'Yeoncheon-gun'
     elif (city == '황매'):return 'Hwangmae'
+    else:return 'Seoul'
 
 
 
