@@ -7,14 +7,12 @@ from selenium.webdriver.chrome.service import Service
 import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver import ActionChains
-from flask import request
 from flask_restful import Resource
 from selenium.webdriver.common.keys import Keys
 from basic_fuc import db_conn, query_insert, db_disconn, query_select
 
 #유저가 검색하면 크롤링 후 DB에 저장하는 API
-class recipeCrawlingAPI(Resource):
+class recipeCrawlingAPI2(Resource):
     def get(self):
         urllink = 'https://www.10000recipe.com/recipe/list.html'
         basic_setting(urllink)
@@ -91,29 +89,37 @@ def get_recipe(driver, recipes, category_text):
         recipeCode = url.split('=')[-1]
         time.sleep(3)
 
-        # 요리명 가져오기
+
+        # 요리명 가져오기 -> 구조 변경으로 요리명 가져올 수가 없어서 제거
         try:
-            food_name = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="relationGoods"]/div[1]/b[1]')))
+            cooking_orders = []  # 조리 순서를 담을 리스트를 생성합니다.
+            step_number = 1  # 초기 스텝 번호
+            while True:
+                xpath = '//*[@id="stepdescr{}"]'.format(step_number)
+                try:
+                    Cooking_order = driver.find_element(By.XPATH, xpath)
+                    cooking_orders.append(Cooking_order.text.replace('\n', '-'))  # 조리 순서를 리스트에 추가합니다.
+                    # 다음 스텝으로 넘어가기 위해 스텝 번호를 증가시킵니다.
+                    step_number += 1
+                except NoSuchElementException:
+                    break
+            recipe_seq_str = '|| '.join(cooking_orders)
+            print(f'조리 순서 : {recipe_seq_str}')
             recipe_image = driver.find_element(By.XPATH,'//*[@id="main_thumbs"]').get_attribute('src')
-            print(f'요리명:{food_name.text}')
             print(f'이미지 링크 : {recipe_image}')
-            select_query = "SELECT COUNT(*) FROM Foodlist WHERE foodname = :food_name"
-            select_result = query_select(connection, query=select_query, food_name=food_name.text)
-            if select_result[0][0] == 0:
-                insert_query = "INSERT INTO Foodlist(foodname, dataType, category) VALUES (:food_name, 1, :category_text)"
-                query_insert(connection, query=insert_query, food_name=food_name.text, category_text=category_text)
-            else:
-                print("해당 음식은 DB에 이미 존재")
 
             select_query = "SELECT COUNT(*) FROM Recipe WHERE recipeCode = :recipeCode"
             select_result = query_select(connection, query=select_query, recipeCode=recipeCode)
             if select_result[0][0] == 0:
                 recipe_url = f"https://www.10000recipe.com/recipe/{recipeCode}"
-                insert_query = "INSERT INTO Recipe(recipeCode, foodname, recipe_url, recipe_title, recipe_img) VALUES (:recipeCode, :food_name, :recipe_url, :recipe_title, :recipe_img)"
-                query_insert(connection, query=insert_query, recipeCode=recipeCode, food_name=food_name.text,
-                             recipe_url=recipe_url, recipe_title=recipe_title_value, recipe_img=recipe_image)
+                insert_query = "INSERT INTO Recipe(recipeCode, recipe_url, recipe_title, recipe_img, recipe_seq) VALUES (:recipeCode, :recipe_url, :recipe_title, :recipe_img, :recipe_seq)"
+                query_insert(connection, query=insert_query, recipeCode=recipeCode, recipe_url=recipe_url,
+                             recipe_title=recipe_title_value, recipe_img=recipe_image, recipe_seq=recipe_seq_str)
             else:
-                print("해당 레시피는 DB에 이미 존재")
+                print("해당 레시피는 DB에 이미 존재하지만 업데이트 합니다.")
+                update_query = "UPDATE Recipe SET recipe_seq = :recipe_seq WHERE recipeCode = :recipeCode"
+                query_insert(connection, query=update_query, recipeCode=recipeCode, recipe_seq=recipe_seq_str)
+                print("업데이트 완료")
         except TimeoutException:
             print("시간 내 요소를 못찾았습니다.")
             pass
@@ -129,20 +135,20 @@ def get_recipe(driver, recipes, category_text):
 #레시피별 세부 정보 가져오기
 def recipe_info(connection,driver, wait, current_tab, recipeCode):
     # 재료 정보 가져오기 (재료, 투입량, 구매 링크) -> 여기서 ul 개수를 체크할 필요가 있을 것 같음. (ul이 하나면 재료만 적힌 것. ul이 두개면 양념이나 다른 추가 정보도 존재..)
-    jaros = driver.find_elements(By.XPATH, '//*[@id="divConfirmedMaterialArea"]/ul[1]/li[*]')
-    for jaro in jaros:
-        a_tags = jaro.find_elements(By.XPATH, './a')
-        first_a_tag = a_tags[0]  # 첫 번째 a 태그  -- 재료의 info 링크
-        second_a_tag = a_tags[1]  # 두 번째 a 태그 -- 구매와 관련된 링크
-        span_tag = jaro.find_element(By.XPATH, './span')
-        print(f'재료 : {first_a_tag.text}  - 투입량 : {span_tag.text} - 구매 링크 : {second_a_tag.get_attribute("href")}')
+    jaros_atag = driver.find_elements(By.XPATH, '//*[@id="divConfirmedMaterialArea"]/ul[1]/a[*]')
+    for jaro in jaros_atag:
+        jaro_li = jaro.find_element(By.XPATH, './li').text
+        ingredient = jaro_li.split('\n')[0]
+        jaro_span = jaro.find_element(By.XPATH, './li/span')
+        print(f'재료명 :{ingredient} - 투입량 : {jaro_span.text}')
+
 
         select_query = "SELECT COUNT(*) FROM Recipe_ingredients WHERE ingredient = :ingredient and recipeCode = :recipeCode"
-        select_result = query_select(connection, query=select_query, ingredient=first_a_tag.text, recipeCode=recipeCode)
+        select_result = query_select(connection, query=select_query, ingredient=ingredient, recipeCode=recipeCode)
         if select_result[0][0] == 0:
             insert_query = "INSERT INTO Recipe_ingredients(ingredient, recipeCode, RI_amount) VALUES (:ingredient, :recipeCode, :RI_amount)"
-            query_insert(connection, query=insert_query, ingredient=first_a_tag.text, recipeCode=recipeCode,
-                      RI_amount=span_tag.text)
+            query_insert(connection, query=insert_query, ingredient=ingredient, recipeCode=recipeCode,
+                      RI_amount=jaro_span.text)
         else:
             print("해당 재료가 이미 DB에 존재..")
 
