@@ -24,8 +24,6 @@ class kinCrawling(Resource):
         return result
 
 
-
-
 def driver_crawling(search):
     result = []  # 결과를 저장할 리스트
     try:
@@ -57,10 +55,8 @@ def driver_crawling(search):
             question_title = search_atag.text
             question_url = search_atag.get_attribute('href')
             answer_date = qNa.find_element(By.XPATH, './dd[1]').text
-            answer_content = qNa.find_element(By.XPATH, './dd[2]').text
-            print('질문 : ',question_title, '링크 :', question_url, '답변 일자:', answer_date, '답변 내용:', answer_content)
 
-            # 새 탭에서 질문 클릭
+                             # 새 탭에서 질문 클릭
             search_atag.click()
             # 현재 열린 탭들의 핸들 가져오기
             all_windows = driver.window_handles
@@ -78,11 +74,13 @@ def driver_crawling(search):
             # 질문 조회수
             question_hit = driver.find_element(By.XPATH,'//*[@id="content"]/div[1]/div/div[3]/div[1]/span[2]').text
 
+            # 답변쪽을 가지고 오는지 확인
+            answer = driver.find_element(By.XPATH,'//*[@id="answer_1"]')
 
-            print('질문 내용 :', question_content)
-            # print('질문 작성자 : ', question_auth)
-            print('질문 작성일자 : ', question_date)
-            print('질문 조회수 : ', question_hit)
+            # answer_date = answer.find_element(By.XPATH, './p').text
+
+            answer_content = answer.find_element(By.CLASS_NAME, '_endContentsText').text
+            print('답변 일자 : ',answer_date,'답변 :', answer_content)
             # 질문과 답변을 딕셔너리로 묶어서 리스트에 추가
             question_data = {
                 'title': question_title,
@@ -93,20 +91,8 @@ def driver_crawling(search):
                 'question_date': question_date,
                 'question_hit': question_hit
             }
+
             result.append(question_data)
-
-            # answer_auth = wait.until(EC.presence_of_element_located(
-            #     (By.XPATH, '//*[@id="answer_1"]/div[2]/div[1]/div[1]/div/a/strong'))).text
-
-            # answer_auth = driver.find_element(By.XPATH,'//*[@id="answer_1"]/div[2]/div[1]/div[1]/div/a/strong').text
-            # print('답변자', answer_auth)
-
-            # answer_content = driver.find_element(By.XPATH,'/html/body/div[2]/div[3]/div/div[1]/div[2]/div/div[2]/div/div[1]/div[3]/div[1]/div/div/div/div/div/div/p[1]/span').text
-            # 답변 내용 가져오기
-            # answer_contents = driver.find_elements(By.XPATH,
-            #                                        '//div[@class="se-main-container"]/div[@class="se-component-content"]')
-            # for index, answer_content in enumerate(answer_contents, start=1):
-            #     print(f'답변 {index} 내용:', answer_content.text)
 
             # 새로운 탭 닫기
             driver.close()
