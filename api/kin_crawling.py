@@ -10,21 +10,22 @@ from selenium.webdriver.support import expected_conditions as EC
 from flask import request
 from flask_restful import Resource
 from selenium.webdriver.common.keys import Keys
+from basic_fuc import db_conn, query_insert, db_disconn, query_select
 import json
 
 class kinCrawling(Resource):
     def post(self):
         search = request.json['search']
         print('검색어 : ', search)
-        return driver_crawling(search)
+        return driver_crawling(search, id)
     def get(self):
         search = request.args.get('search')
-        # id = request.args.get('id')
-        result = driver_crawling(search)
+        id = request.args.get('id')
+        result = driver_crawling(search, id)
         return result
 
 
-def driver_crawling(search):
+def driver_crawling(search,id):
     result = []  # 결과를 저장할 리스트
     try:
         # 1.WebDriver객체 생성
@@ -46,6 +47,11 @@ def driver_crawling(search):
         # Enter 키 전송
         search_box.send_keys(Keys.RETURN)
         qNas = driver.find_elements(By.XPATH, '//*[@id="s_content"]/div[3]/ul/li[*]/dl')
+
+        connection = db_conn()
+        insert_query = "INSERT INTO kin_user(ID, search) VALUES (:id, :search)"
+        query_insert(connection, query=insert_query, id=id, search=search)
+        db_disconn(connection)
 
         # 현재 탭의 핸들 가져오기
         original_window = driver.current_window_handle
