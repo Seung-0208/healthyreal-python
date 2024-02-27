@@ -70,6 +70,9 @@ def data_Integration(connection, userid):
 
     return user_meals
 
+
+import numpy as np  # numpy 추가
+
 # 추천 함수
 def recommend_meal(user_meals, meal_type):
     # meal_type에 따라 해당하는 음식 데이터를 추출
@@ -86,13 +89,19 @@ def recommend_meal(user_meals, meal_type):
     # 음식 벡터화
     meal_vectors = []
     for meal in filtered_user_meals:
+        # 'INGREDIENT' 키에 대한 값이 비어 있는 경우 건너뜁니다.
+        if not meal['INGREDIENT']:
+            continue
         vector = [0] * len(ingredients)
         for ingredient in meal['INGREDIENT']:
             vector[ingredient_to_idx[ingredient]] = 1
         meal_vectors.append(vector)
 
     # 음식 간 유사도 계산
-    similarities = cosine_similarity(meal_vectors, meal_vectors)
+    if len(meal_vectors) > 0:  # meal_vectors가 비어 있는지 확인
+        similarities = cosine_similarity(meal_vectors, meal_vectors)
+    else:
+        similarities = np.zeros((0, 0))  # 비어 있는 경우 빈 유사도 행렬 생성
 
     # 추천할 음식 선택
     meal_scores = [0] * len(filtered_user_meals)
@@ -106,6 +115,7 @@ def recommend_meal(user_meals, meal_type):
         'RECIPECODE': filtered_user_meals[max_score_idx]['EATING_RECIPECODE']
     }
     return recommended_food
+
 
 def db_save(connection, userid, meal_type, RECOMMEND_FOOD,RECIPECODE):
     insert_query = "INSERT INTO EATING_RECORD(ID, MEALTYPE, EATING_FOODNAME, EATING_RECIPECODE, EATING_DATE) VALUES(:userid, :meal_type, :recommend_food, :recipe_code, SYSDATE)"

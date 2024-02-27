@@ -14,6 +14,7 @@ from recipeCrawling_copy import recipeCrawlingAPI2
 from Food_recommendation import food_recommend
 from kin_crawling import kinCrawling
 from wordcloud3d import wordcloudtest
+from youtude_crawling import youtudeCrawling
 
 #플라스크 앱 생성
 app = Flask(__name__)
@@ -35,6 +36,7 @@ api.add_resource(FaceEmotion, '/test')
 api.add_resource(food_recommend, '/food_recommend')
 api.add_resource(kinCrawling, '/kinCrawling')
 api.add_resource(wordcloudtest, '/wordcloud')
+api.add_resource(youtudeCrawling, '/youtudeCrawling')
 api.decorators=[CORS()]
 
 if __name__ == '__main__':
