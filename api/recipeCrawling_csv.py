@@ -11,7 +11,8 @@ from selenium.webdriver.common.keys import Keys
 from basic_fuc import db_conn, query_insert, db_disconn, query_select
 import csv
 
-#유저가 검색하면 크롤링 후 DB에 저장하는 API
+
+# 유저가 검색하면 크롤링 후 DB에 저장하는 API
 class fileNrecipeCrawling(Resource):
     def get(self):
         print('들어왕ㅆ니?')
@@ -19,6 +20,7 @@ class fileNrecipeCrawling(Resource):
         csv_data = read_csv_file(file_path)
         crawling(csv_data)
         return "크롤링 작업이 성공적으로 실행되었습니다."
+
 
 def read_csv_file(file_path):
     data = []
@@ -40,8 +42,6 @@ def read_csv_file(file_path):
     return data
 
 
-
-
 def crawling(csv_data):
     connection = db_conn()
     # 읽어온 데이터 출력
@@ -57,12 +57,13 @@ def crawling(csv_data):
         cholesterol = row[8]
         recipecode = row[9]
         url = f'https://www.10000recipe.com/recipe/{recipecode}'
-        print(f'음식명:{foodname} | 데이터타입 :{datatype} | 카테고리:{category} | 칼로리:{calory} | 탄수화물:{carbohydrate} | 단백질:{protein}| 지방:{fat} | 나트륨:{sodium}| 콜레스테롤:{cholesterol} | url:{url}')
+        print(
+            f'음식명:{foodname} | 데이터타입 :{datatype} | 카테고리:{category} | 칼로리:{calory} | 탄수화물:{carbohydrate} | 단백질:{protein}| 지방:{fat} | 나트륨:{sodium}| 콜레스테롤:{cholesterol} | url:{url}')
 
         # 아래는 FOODLIST에 데이터 넣는 코드 (완료)
         # insert_query = "INSERT INTO FOODLIST(foodname, datatype, category, calory,carbohydrate, protein, fat, sodium, cholesterol) VALUES (:foodname, :datatype, :category, :calory, :carbohydrate, :protein, :fat, :sodium, :cholesterol)"
         # query_insert(connection, query=insert_query, foodname=foodname, datatype=datatype,category=category, calory=calory, carbohydrate=carbohydrate, protein=protein, fat=fat, sodium=sodium, cholesterol=cholesterol)
-        
+
         driver_path = f'{os.path.join(os.path.dirname(__file__), "chromedriver.exe")}'
         # 웹드라이버를 위한 Service객체 생성
         service = Service(executable_path=driver_path)
@@ -80,7 +81,6 @@ def crawling(csv_data):
         recipeCode = url.rsplit("/", 1)[-1]
         print(f'레시피 코드:{recipeCode}')
 
-
         # 요리명 가져오기 -> 구조 변경으로 요리명 가져올 수가 없어서 제거
         try:
             cooking_orders = []  # 조리 순서를 담을 리스트를 생성합니다.
@@ -97,7 +97,7 @@ def crawling(csv_data):
 
             recipe_seq_str = '|| '.join(cooking_orders)
             print(f'조리 순서 : {recipe_seq_str}')
-            recipe_image = driver.find_element(By.XPATH,'//*[@id="main_thumbs"]').get_attribute('src')
+            recipe_image = driver.find_element(By.XPATH, '//*[@id="main_thumbs"]').get_attribute('src')
             print(f'이미지 링크 : {recipe_image}')
 
             select_query = "SELECT COUNT(*) FROM Recipe WHERE recipeCode = :recipeCode"
@@ -105,7 +105,8 @@ def crawling(csv_data):
             print('여기까지 완료?')
             print(select_result)
             if select_result[0][0] == 0:
-                print(f'그럼 여기까지는 들어왔나? recipeCode:{recipeCode} | foodname:{foodname}| recipe_url:{url} | recipe_title:{recipe_title_value} | recipe_img:{recipe_image}')
+                print(
+                    f'그럼 여기까지는 들어왔나? recipeCode:{recipeCode} | foodname:{foodname}| recipe_url:{url} | recipe_title:{recipe_title_value} | recipe_img:{recipe_image}')
                 insert_query = "INSERT INTO Recipe(recipeCode, foodname, recipe_url, recipe_title, recipe_img, recipe_seq) VALUES (:recipeCode, :foodname, :recipe_url, :recipe_title, :recipe_img, :recipe_seq)"
                 query_insert(connection, query=insert_query, recipeCode=recipeCode, foodname=foodname, recipe_url=url,
                              recipe_title=recipe_title_value, recipe_img=recipe_image, recipe_seq=recipe_seq_str)
@@ -123,12 +124,11 @@ def crawling(csv_data):
             print("찾는 요소가 없습니다.")
             pass
 
-
-
     db_disconn(connection)
 
+
 #####################################################################
-#레시피별 세부 정보 가져오기
+# 레시피별 세부 정보 가져오기
 def recipe_info(connection, driver, recipeCode):
     print('재료쪽에는 못들어왔어?')
     # 재료 정보 가져오기 (재료, 투입량, 구매 링크) -> 여기서 ul 개수를 체크할 필요가 있을 것 같음. (ul이 하나면 재료만 적힌 것. ul이 두개면 양념이나 다른 추가 정보도 존재..)
@@ -149,7 +149,7 @@ def recipe_info(connection, driver, recipeCode):
             if select_result[0][0] == 0:
                 insert_query = "INSERT INTO Recipe_ingredients(ingredient, recipeCode, RI_amount) VALUES (:ingredient, :recipeCode, :RI_amount)"
                 query_insert(connection, query=insert_query, ingredient=ingredient, recipeCode=recipeCode,
-                          RI_amount=jaro_span)
+                             RI_amount=jaro_span)
                 print('재료 업로드 성공')
             else:
                 print("해당 재료가 이미 DB에 존재..")

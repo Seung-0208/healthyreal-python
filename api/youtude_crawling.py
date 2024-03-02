@@ -15,16 +15,23 @@ from basic_fuc import db_conn, query_insert, db_disconn, query_select
 import json
 
 class youtudeCrawling(Resource):
-    def get(self):
-        search = request.args.get('search')
-        if search is None:
-            return {'message': '검색어를 전달해주세요.'}, 400  # 검색어가 전달되지 않았을 때의 예외 처리
+    # def get(self):
+    #     search = request.args.get('search')
+    #     if search is None:
+    #         return {'message': '검색어를 전달해주세요.'}, 400  # 검색어가 전달되지 않았을 때의 예외 처리
+    #
+    #     print('전달받은 값:', search)
+    #     result = youtude_crawling(search)
+    #     return result
+    #     # youtude_crawling(search)
+    #     # return "성공?"
 
-        print('전달받은 값:', search)
-        result = youtude_crawling(search)
+    ## exercise_crawling과 연결 버전
+    def get(self, e_name):
+
+        print('전달받은 값:', e_name)
+        result = youtude_crawling(e_name)
         return result
-        # youtude_crawling(search)
-        # return "성공?"
 
 def youtude_crawling(search):
     print('유튜브 크롤링을 시작합니다.')
