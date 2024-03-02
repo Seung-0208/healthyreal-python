@@ -10,7 +10,7 @@ from text_emotion_detect import TextEmotionDetection
 from Weather_Info import weather_info
 from food_ocr import foodOcr
 from OCR import inOcr
-from recipeCrawling_copy import recipeCrawlingAPI2
+from recipeCrawling_csv import fileNrecipeCrawling
 from Food_recommendation import food_recommend
 from kin_crawling import kinCrawling
 from wordcloud3d import wordcloudtest
@@ -33,7 +33,7 @@ api.add_resource(weather_info, '/weatherInfo')
 api.add_resource(foodOcr, '/foodOcr')
 api.add_resource(inOcr, '/ocr')
 
-api.add_resource(recipeCrawlingAPI2, '/recipeCrawlingAPI_copy')
+api.add_resource(fileNrecipeCrawling, '/fileNrecipeCrawling')
 api.add_resource(FaceEmotion, '/test')
 api.add_resource(food_recommend, '/food_recommend')
 api.add_resource(kinCrawling, '/kinCrawling')
