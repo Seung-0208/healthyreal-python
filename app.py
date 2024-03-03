@@ -16,6 +16,7 @@ from kin_crawling import kinCrawling
 from wordcloud3d import wordcloudtest
 from youtude_crawling import youtudeCrawling
 from Exercise_recommendation import recommendExercise
+from recommendMate import recommendMate
 
 
 #플라스크 앱 생성
@@ -40,6 +41,7 @@ api.add_resource(kinCrawling, '/kinCrawling')
 api.add_resource(wordcloudtest, '/wordcloud')
 api.add_resource(youtudeCrawling, '/youtudeCrawling')
 api.add_resource(recommendExercise, '/recommendExercise')
+api.add_resource(recommendMate, '/recommendMate')
 api.decorators=[CORS()]
 
 if __name__ == '__main__':
