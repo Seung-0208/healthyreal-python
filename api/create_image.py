@@ -12,7 +12,9 @@ client = OpenAI(
 class CreateImage(Resource):
     def post(self):
         prompt = request.json['message']  # 뷰에서 넘긴 메세지 받기
+        id = request.json['id']  # 뷰에서 넘긴 메세지 받기
         print('받은 메세지:', prompt)
+        print('받은 메세지:', id)
         image_path, image_name = generate_image(prompt, client)
         image_url = '/' + image_path.replace('\\', '/')
         print('보내는 메세지:', image_url)
@@ -28,7 +30,7 @@ def create_image(client, model, messages):
     response = client.chat.completions.create(model=model, messages=messages)
     return response
 
-def generate_image(prompt, client):
+def generate_image(prompt, client, id):
     model = 'gpt-3.5-turbo'
 
     print('받은 메세지2:', prompt)
@@ -44,14 +46,14 @@ def generate_image(prompt, client):
     folder_path = 'static/upload_image'  # 'static' 폴더 아래에 이미지 저장
     create_folder_if_not_exists(folder_path)
 
-    image_name = 'Id.jpg'
+    image_name = id
     image_path = os.path.join(folder_path, image_name)
 
     if os.path.exists(image_path):
         # 중복된 이미지 이름이 있을 경우, 숫자를 추가하여 중복 피하기
         index = 1
         while os.path.exists(image_path):
-            image_name = f'Id_{index}.jpg'
+            image_name = f'{id}_{index}.jpg'
             image_path = os.path.join(folder_path, image_name)
             index += 1
     response = client.images.generate(

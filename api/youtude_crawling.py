@@ -26,6 +26,13 @@ class youtudeCrawling(Resource):
         # youtude_crawling(search)
         # return "성공?"
 
+    # ## exercise_crawling과 연결 버전
+    # def get(self, e_name):
+    #
+    #     print('전달받은 값:', e_name)
+    #     result = youtude_crawling(e_name)
+    #     return result
+
 def youtude_crawling(search):
     print('유튜브 크롤링을 시작합니다.')
 
