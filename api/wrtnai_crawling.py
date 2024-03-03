@@ -16,15 +16,15 @@ class wrtnCrawling(Resource):
         # search = request.json['search']
         result = driver_crawling(search)
         return result
-    # def get(self, search):
-    #     result = driver_crawling(search)
-    #     return result
-
-    def get(self):
-        search = request.args.get('search')
-        # id = request.args.get('id')
+    def get(self, search):
         result = driver_crawling(search)
         return result
+
+    # def get(self):
+    #     search = request.args.get('search')
+    #     # id = request.args.get('id')
+    #     result = driver_crawling(search)
+    #     return result
 
 
 def driver_crawling(search):
@@ -35,7 +35,7 @@ def driver_crawling(search):
         # 웹드라이버를 위한 Service객체 생성
         service = Service(executable_path=driver_path)
         options = webdriver.ChromeOptions()
-        # options.add_argument("--headless")  # headless 모드 설정
+        options.add_argument("--headless")  # headless 모드 설정
         options.add_argument(
             "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")  # 사용자 에이전트 설정
         # 자동종료 막기
@@ -57,7 +57,15 @@ def driver_crawling(search):
         search_box.send_keys(Keys.RETURN)
         time.sleep(10)
         wait = WebDriverWait(driver, 30)
-        answer = wait.until(EC.visibility_of_element_located((By.XPATH, '//*[@id="ScrollContainer"]/div[1]/div/div/div[3]/div/div[2]/swiper-container/swiper-slide/div/div[1]/div[1]/div/p')))
+        # answer = wait.until(EC.visibility_of_element_located((By.XPATH, '//*[@id="ScrollContainer"]/div[1]/div/div/div[3]/div/div[2]/swiper-container/swiper-slide/div/div[1]/div[1]/div/p')))
+
+        search_box.send_keys(search)
+        # Enter 키 전송
+        search_box.send_keys(Keys.RETURN)
+        time.sleep(10)
+        wait = WebDriverWait(driver, 30)
+        # answer = wait.until(EC.visibility_of_element_located((By.XPATH, '//*[@id="ScrollContainer"]/div[1]/div/div/div[3]/div/div[2]/swiper-container/swiper-slide/div/div[1]/div[1]/div/p')))
+        answer = wait.until(EC.visibility_of_element_located((By.XPATH, '//*[@id="ScrollContainer"]/div[1]/div/div/div[5]/div/div[2]/swiper-container/swiper-slide/div/div[1]/div[1]/div/ol')))
 
         # print(answer)
         print('뤼튼 답변 :',answer.text)
@@ -67,6 +75,5 @@ def driver_crawling(search):
     except (TimeoutException, NoSuchElementException) as e:
         print('지정한 요소를 찾을수 없어요:', e)
     finally:
-        pass
-        # driver.quit()
+        driver.quit()
     return result

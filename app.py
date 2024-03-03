@@ -16,6 +16,8 @@ from kin_crawling import kinCrawling
 from wordcloud3d import wordcloudtest
 from youtude_crawling import youtudeCrawling
 from Exercise_recommendation import recommendExercise
+from wrtnai_crawling import wrtnCrawling
+from exercise_crawling import exerciseCrawling
 from recommendMate import recommendMate
 
 
@@ -41,6 +43,8 @@ api.add_resource(kinCrawling, '/kinCrawling')
 api.add_resource(wordcloudtest, '/wordcloud')
 api.add_resource(youtudeCrawling, '/youtudeCrawling')
 api.add_resource(recommendExercise, '/recommendExercise')
+api.add_resource(wrtnCrawling, '/wrtnCrawling')
+api.add_resource(exerciseCrawling, '/exerciseCrawling')
 api.add_resource(recommendMate, '/recommendMate')
 api.decorators=[CORS()]
 

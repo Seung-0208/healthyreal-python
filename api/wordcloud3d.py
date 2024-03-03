@@ -8,6 +8,8 @@ from flask_restful import Resource
 from flask import request, send_file, jsonify
 import base64
 import io
+from PIL import Image
+import numpy as np
 
 class wordcloudtest(Resource):
     def post(self):
@@ -41,8 +43,11 @@ def wordcloud_basic(text):
     # 시스템에 설치된 한글 폰트 경로를 지정
     font_path = "C:/Windows/Fonts/malgun.ttf"  # 맑은 고딕 폰트의 예시
 
+    # 하트 모양 이미지를 로드하여 마스크로 사용
+    mask = np.array(Image.open("./api/heart0.png"))
+
     # WordCloud 생성 시 폰트 경로 지정
-    wc = WordCloud(font_path=font_path, background_color="white", max_font_size=60)
+    wc = WordCloud(font_path=font_path, background_color="white", max_font_size=60, mask=mask)
 
     cloud = wc.generate_from_frequencies(dict(tags))
 
