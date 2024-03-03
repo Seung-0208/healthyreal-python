@@ -46,37 +46,21 @@ class recommendExercise(Resource):
         recommended_exercises = recommend(exercise_index).tolist()
         print('추천 받은 운동 :',recommended_exercises)
 
-        # connection = db_conn()
-        #
-        # # # 추천된 각 운동에 대해 검색을 수행하고 결과를 모으기
-        # # wrtn_results = []
-        # #
-        # # for search_exercies in recommended_exercises:
-        # #     # wrtnCrawling() 함수를 호출하여 사용하고 검색어를 전달
-        # #     search = '안녕하세요 혹은 인사, 추임새, 알겠습니다 하지말고' + search_exercies + '운동에 대해서만 하는 방법과 팁을 설명해줘'
-        # #     wrtn_crawler = wrtnCrawling()
-        # #     result = wrtn_crawler.get(search)
-        # #     wrtn_results.append(result)
-        # #
-        # #     select_query = "SELECT COUNT(*) FROM EXERCISE_RECORD WHERE id = :id AND TO_CHAR(er_date, 'YYYY-MM-DD') = TO_CHAR(SYSDATE, 'YYYY-MM-DD') AND er_name = :er_name"
-        # #     select_result = query_select(connection, query=select_query, id=id,er_name=search_exercies)
-        # #     print(select_result)
-        # #
-        # #     if select_result[0][0] == 0:
-        # #         insert_query = "INSERT INTO EXERCISE_RECORD(id, er_type, er_name, er_content) VALUES (:id, :er_type, :er_name, :er_content)"
-        # #         query_insert(connection, query=insert_query, id=id, er_type=content, er_name=search_exercies, er_content=result)
-        # #         print('[행 삽입 완료]')
-        # #     else:
-        # #         print('[오늘의 운동 추천은 끝]')
-        # #
-        # # print('뤼튼 검색 후 답변 모음 :', wrtn_results)
-        # #
-        # # returnDate = {
-        # #     'recommended_exercises': recommended_exercises,
-        # #     'wrtn_results': wrtn_results,
-        # # }
-        # #
-        # # db_disconn(connection)
+        connection = db_conn()
+
+        for search_exercies in recommended_exercises:
+            select_query = "SELECT COUNT(*) FROM EXERCISE_RECORD WHERE id = :id AND TO_CHAR(er_date, 'YYYY-MM-DD') = TO_CHAR(SYSDATE, 'YYYY-MM-DD') AND e_name = :e_name"
+            select_result = query_select(connection, query=select_query, id=id,e_name=search_exercies)
+            print(select_result)
+
+            if select_result[0][0] == 0:
+                insert_query = "INSERT INTO EXERCISE_RECORD(id, e_name) VALUES (:id, :e_name)"
+                query_insert(connection, query=insert_query, id=id, e_name=search_exercies)
+                print('[행 삽입 완료]')
+            else:
+                print('[오늘의 운동 추천은 끝]')
+
+        db_disconn(connection)
 
         return {'recommended_exercises': recommended_exercises}
 
