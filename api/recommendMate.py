@@ -1,3 +1,4 @@
+import requests
 from surprise import SVD, Dataset, Reader, accuracy
 from surprise.model_selection import train_test_split
 import pandas as pd
@@ -20,7 +21,6 @@ class recommendMate(Resource):
 
         top_mates = self.recommend_mates(ID, n_top, data, model)
         print(top_mates)
-
         return {'recommendations': top_mates}
 
     def dbconnect(self):
@@ -39,6 +39,8 @@ class recommendMate(Resource):
         })
         return ratings_df
 
+    def getUserMateProfile(self, id):
+        return requests.get(f'http://localhost:4000/comm/mate?id={id}').json()
     def recommend_mates(self, ID, n_top, data, model):
         mate_ids = data.df['MATE_ID'].unique()
         rated_mates = data.df[data.df['ID'] == ID]['MATE_ID']
@@ -48,4 +50,15 @@ class recommendMate(Resource):
         predictions.sort(key=lambda pred: pred.est, reverse=True)
         top_predictions = predictions[:n_top]
 
-        return [{'mate_id': pred.iid, 'estimated_rating': pred.est} for pred in top_predictions]
+        returnVal = []
+        for pred in top_predictions:
+            tempProfile = self.getUserMateProfile(pred.iid)[0]
+            print(tempProfile)
+            returnVal.append({'mate_id': pred.iid,
+                              'estimated_rating': pred.est,
+                              'name': tempProfile['name'],
+                              'fnum': tempProfile['fnum'],
+                              'mnum': tempProfile['mnum'],
+                              'snum': tempProfile['snum'],
+                              'profilePath':tempProfile['profilePath']})
+        return returnVal
