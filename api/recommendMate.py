@@ -42,12 +42,19 @@ class recommendMate(Resource):
     def recommend_mates(self, ID, n_top, data, model):
         mate_ids = data.df['MATE_ID'].unique()
         rated_mates = data.df[data.df['ID'] == ID]['MATE_ID']
-        unrated_mates = [mate for mate in mate_ids if
-                         mate not in rated_mates and mate != ID] #자기 자신은 제외
+        unrated_mates = [mate for mate in mate_ids if mate not in rated_mates and mate != ID]
 
         predictions = [model.predict(ID, mate_id) for mate_id in unrated_mates]
         predictions.sort(key=lambda pred: pred.est, reverse=True)
+
+        # 자신이 제외될 경우, 추가로 한 명 더 추천
+        if len(predictions) < n_top:
+            n_top = len(predictions)
+        elif ID in unrated_mates:
+            n_top += 1
+
         top_predictions = predictions[:n_top]
 
         return [{'mate_id': pred.iid, 'estimated_rating': pred.est} for pred in top_predictions]
+
 
