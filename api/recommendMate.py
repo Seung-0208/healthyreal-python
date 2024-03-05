@@ -44,7 +44,8 @@ class recommendMate(Resource):
     def recommend_mates(self, ID, n_top, data, model):
         mate_ids = data.df['MATE_ID'].unique()
         rated_mates = data.df[data.df['ID'] == ID]['MATE_ID']
-        unrated_mates = [mate for mate in mate_ids if mate not in rated_mates]
+        unrated_mates = [mate for mate in mate_ids if
+                         mate not in rated_mates and mate != ID] #자기 자신은 제외
 
         predictions = [model.predict(ID, mate_id) for mate_id in unrated_mates]
         predictions.sort(key=lambda pred: pred.est, reverse=True)
@@ -62,3 +63,4 @@ class recommendMate(Resource):
                               'snum': tempProfile['snum'],
                               'profilePath':tempProfile['profilePath']})
         return returnVal
+
