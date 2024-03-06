@@ -4,12 +4,12 @@ from gensim.models import Word2Vec
 from flask_restful import Resource
 from flask import request
 import random
-from wrtnai_crawling import wrtnCrawling
 from basic_fuc import db_conn, query_insert, db_disconn, query_select
 
-df = pd.read_csv('./api/megaGymDataset.csv', encoding='ISO-8859-1')
+df = pd.read_csv('./api/megaGymDataset_.csv', encoding='ISO-8859-1')
 
-model = Word2Vec(sentences=df['BodyPart'],vector_size=100,window=5,min_count=1,sg=1)
+df['Desc'] = df['Desc'].astype(str)
+model = Word2Vec(sentences=df['Desc'],vector_size=100,window=5,min_count=1,sg=1)
 word_vectors_matrics = model.wv.vectors.astype('float32')
 title_to_index = dict(zip(df['Title'],df.index))
 index_to_title = dict(zip(df.index,df['Title']))

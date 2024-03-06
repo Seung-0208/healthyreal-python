@@ -5,7 +5,7 @@ def connect_to_oracle():
     connection = cx_Oracle.connect(
         user="TEAM",
         password="TEAM",
-        dsn="192.168.0.8/XEPDB1"
+        dsn="192.168.0.99/XEPDB1"
     )
 
     # 연결 확인
