@@ -9,7 +9,7 @@ from flask import request
 class recommendMate(Resource):
     def post(self):
         ID = request.json.get('ID')  # 클라이언트가 보낸 ID 받기
-        n_top = 5
+        n_top = 6
 
         ratings = self.dbconnect()
         reader = Reader(rating_scale=(0.5, 5))
