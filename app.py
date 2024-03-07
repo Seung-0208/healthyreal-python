@@ -19,6 +19,8 @@ from Exercise_recommendation import recommendExercise
 from wrtnai_crawling import wrtnCrawling
 from exercise_crawling import exerciseCrawling
 from recommendMate import recommendMate
+from ttest import ttest
+from summary_api import summaryAPI
 
 
 #플라스크 앱 생성
@@ -46,6 +48,8 @@ api.add_resource(recommendExercise, '/recommendExercise')
 api.add_resource(wrtnCrawling, '/wrtnCrawling')
 api.add_resource(exerciseCrawling, '/exerciseCrawling')
 api.add_resource(recommendMate, '/recommendMate')
+api.add_resource(ttest, '/ttest')
+api.add_resource(summaryAPI, '/summaryAPI')
 api.decorators=[CORS()]
 
 if __name__ == '__main__':
