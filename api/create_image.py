@@ -87,7 +87,7 @@ def generate_image(prompt, client, id):
 
     if uploaded:
         # S3에 업로드된 파일의 URL을 가져옵니다.
-        s3_url = f"https://teamprojectimg.s3.ap-northeast-2.amazonaws.com/{s3_file}"
+        s3_url = f"https://ictimg.s3.ap-northeast-2.amazonaws.com/{s3_file}"
         return s3_url, image_name
     else:
         return None, None
