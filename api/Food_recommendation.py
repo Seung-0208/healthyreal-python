@@ -118,5 +118,8 @@ def recommend_meal(user_meals, meal_type):
 
 
 def db_save(connection, userid, meal_type, RECOMMEND_FOOD,RECIPECODE):
-    insert_query = "INSERT INTO EATING_RECORD(ID, MEALTYPE, EATING_FOODNAME, EATING_RECIPECODE, EATING_DATE) VALUES(:userid, :meal_type, :recommend_food, :recipe_code, SYSDATE)"
-    query_insert(connection, query=insert_query, userid=userid, meal_type= meal_type, recommend_food= RECOMMEND_FOOD, recipe_code= RECIPECODE)
+    select_query = "SELECT COUNT(*) FROM EATING_RECORD WHERE ID = :userid AND MEALTYPE = :meal_type AND TRUNC(eating_date) = TRUNC(SYSDATE)"
+    select_result = query_select(connection, query=select_query, userid=userid, meal_type=meal_type)
+    if select_result[0][0] == 0:
+        insert_query = "INSERT INTO EATING_RECORD(ID, MEALTYPE, EATING_FOODNAME, EATING_RECIPECODE, EATING_DATE) VALUES(:userid, :meal_type, :recommend_food, :recipe_code, SYSDATE)"
+        query_insert(connection, query=insert_query, userid=userid, meal_type= meal_type, recommend_food= RECOMMEND_FOOD, recipe_code= RECIPECODE)
