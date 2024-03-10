@@ -49,16 +49,36 @@ class recommendExercise(Resource):
         connection = db_conn()
 
         for search_exercies in recommended_exercises:
-            select_query = "SELECT COUNT(*) FROM EXERCISE_RECORD WHERE id = :id AND TO_CHAR(er_date, 'YYYY-MM-DD') = TO_CHAR(SYSDATE, 'YYYY-MM-DD') AND e_name = :e_name"
-            select_result = query_select(connection, query=select_query, id=id,e_name=search_exercies)
+            # 오늘 데이터를 불러와 NUM이 빠른 값을 찾음
+            select_query = """
+                    SELECT ID, E_NAME, ER_DATE, NUM
+                    FROM EXERCISE_RECORD 
+                    WHERE ID = :id AND TO_CHAR(er_date, 'YYYY-MM-DD') = TO_CHAR(SYSDATE, 'YYYY-MM-DD') 
+                    ORDER BY NUM DESC
+            """
+            select_result = query_select(connection, query=select_query, id=id)
             print(select_result)
 
-            if select_result[0][0] == 0:
-                insert_query = "INSERT INTO EXERCISE_RECORD(id, e_name) VALUES (:id, :e_name)"
-                query_insert(connection, query=insert_query, id=id, e_name=search_exercies)
-                print('[행 삽입 완료]')
+            if len(select_result) < 3:
+                select_query_ = "SELECT COUNT(*) FROM EXERCISE_RECORD WHERE id = :id AND TO_CHAR(er_date, 'YYYY-MM-DD') = TO_CHAR(SYSDATE, 'YYYY-MM-DD') AND E_NAME = :E_NAME"
+                select_result_ = query_select(connection, query=select_query_, id=id, E_NAME=search_exercies)
+                if select_result_[0][0] == 0:
+                    insert_query = "INSERT INTO EXERCISE_RECORD(id, e_name) VALUES (:id, :e_name)"
+                    query_insert(connection, query=insert_query, id=id, e_name=search_exercies)
+                    print('[행 삽입 완료]')
+                else:
+                    print('이미 오늘 추천 받았던 운동')
             else:
-                print('[오늘의 운동 추천은 끝]')
+                print('[운동 업데이트]')
+                # 가장 빠른 NUM 값을 가진 행을 업데이트하고, NUM은 신규 값으로 업데이트
+                update_query = """
+                    UPDATE EXERCISE_RECORD 
+                    SET e_name = :new_e_name, NUM = :new_num 
+                    WHERE id = :id AND NUM = (SELECT MIN(NUM) FROM EXERCISE_RECORD WHERE ID = :id AND TO_CHAR(ER_DATE, 'YYYY-MM-DD') = TO_CHAR(SYSDATE, 'YYYY-MM-DD')) 
+                """
+                query_insert(connection, query=update_query, new_e_name=search_exercies,
+                             new_num=select_result[0][3] + 1, id=id)
+                print('[업데이트 완료]')
 
         db_disconn(connection)
 
