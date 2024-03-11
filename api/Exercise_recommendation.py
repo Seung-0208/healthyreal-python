@@ -44,6 +44,7 @@ class recommendExercise(Resource):
 
         # 해당 인덱스를 사용해 추천 운동 찾기
         recommended_exercises = recommend(exercise_index).tolist()
+        result_string = ', '.join(recommended_exercises)
         print('추천 받은 운동 :',recommended_exercises)
 
         connection = db_conn()
@@ -79,6 +80,19 @@ class recommendExercise(Resource):
                 query_insert(connection, query=update_query, new_e_name=search_exercies,
                              new_num=select_result[0][3] + 1, id=id)
                 print('[업데이트 완료]')
+
+        select_query = "SELECT count(*) FROM Schedule WHERE ID = :id AND TO_CHAR(Sch_Start, 'YYYY-MM-DD') = TO_CHAR(SYSDATE, 'YYYY-MM-DD') AND CALENDAR = 5 "
+        select_result = query_select(connection, query=select_query, id=id)
+        print("포인트 0번")
+        if select_result[0][0] == 0:
+            print("포인트 1번")
+            insert_query = """INSERT INTO Schedule (ID, calendar, Sch_Title, Sch_exercise, Sch_Start, Sch_End)
+                              VALUES (:id, 5, '운동 스케줄', :Sch_exercise, TRUNC(SYSDATE) + INTERVAL '20' HOUR, TRUNC(SYSDATE) + INTERVAL '21' HOUR)"""
+            query_insert(connection, query=insert_query, id=id, Sch_exercise=result_string)
+        else:
+            print("포인트 2번")
+            update_query = "UPDATE Schedule SET Sch_exercise = :Sch_exercise WHERE id = :id AND TO_CHAR(Sch_Start, 'YYYY-MM-DD') = TO_CHAR(SYSDATE, 'YYYY-MM-DD') AND CALENDAR = 5 "
+            query_insert(connection, query=update_query, id=id, Sch_exercise=result_string)
 
         db_disconn(connection)
 
