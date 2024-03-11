@@ -22,7 +22,6 @@ class summaryAPI(Resource):
 
     def post(self):
         args = self.reqparse.parse_args()
-        # 모든 항목을 포함할 큰 문자열을 초기화합니다.
         combined_content = []
         for item in args['content']:
             cal_label = self.getCalLabel(item.get('cal')) if item.get('cal') is not None else ''
@@ -30,7 +29,6 @@ class summaryAPI(Resource):
             sexer = item.get('sexer', '') if item.get('sexer') is not None else ''
             seat_sexer_info = ''.join([seat, sexer]) if seat or sexer else ''
             cal_info_str = f"{cal_label}은 {seat_sexer_info}입니다." if cal_label and seat_sexer_info else ''
-
             content_parts = [
                 f"{item.get('stitle', '')}는" if item.get('stitle') else '',
                 f"{item.get('start', '')[11:16]}부터" if item.get('start') else '',
@@ -42,12 +40,9 @@ class summaryAPI(Resource):
                 f"같이 가는 메이트는 {item.get('smate', '')}입니다." if item.get('smate') else ''
             ]
             content_str = ' '.join(part for part in content_parts if part)
-            # 개별 항목 대신, 모든 항목을 하나의 큰 문자열로 추가합니다.
             combined_content.append(content_str)
-
-        # 모든 항목을 포함하는 큰 문자열을 최종 생성합니다.
+        # 모든 타임라인 합치기
         final_content = ' '.join(combined_content)
-        print(final_content)
 
         data = {
             "document": {
@@ -62,8 +57,6 @@ class summaryAPI(Resource):
         }
         response = requests.post(self.url, headers=self.headers, data=json.dumps(data).encode('UTF-8'))
         summary = response.json() if response.ok else {'error': response.json()}
-        print("요약 내용은?", summary)
-
         return summary
 
     @staticmethod

@@ -25,20 +25,14 @@ class ChatAI(Resource):
         All answers must be provided in Korean.
         '''}]
         while True:
-            # 뷰에서 넘긴 메세지 받기
             content = request.json['message']
-            print('받은 메세지:', content)
-            # AI 챗봇에 메시지를 전달하고, 챗봇의 응답을 받아옴
             response = AIChatBot(content, messages=messages)
-            print('받은 응답메세지ㅣ',response)
             messages = response['messages']
             if response['status'] == 'SUCCESS':
                 answer = response['messages'][len(messages) - 1]['content']
-                print(f'챗봇:{answer}')
                 return jsonify({"answer": answer})
             else:
                 print(messages)
-
 
 def AIChatBot(content,model='gpt-4-turbo-preview',messages=[],temperature=1):
     error=None
