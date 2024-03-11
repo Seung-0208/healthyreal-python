@@ -86,8 +86,8 @@ class recommendExercise(Resource):
         print("포인트 0번")
         if select_result[0][0] == 0:
             print("포인트 1번")
-            insert_query = """INSERT INTO Schedule (ID, calendar, Sch_Title, Sch_exercise, Sch_Start, Sch_End)
-                              VALUES (:id, 5, '운동 스케줄', :Sch_exercise, TRUNC(SYSDATE) + INTERVAL '20' HOUR, TRUNC(SYSDATE) + INTERVAL '21' HOUR)"""
+            insert_query = """INSERT INTO Schedule (ID, calendar, Sch_Title, Sch_exercise, Sch_Start, Sch_End, Sch_Comment)
+                              VALUES (:id, 5, '운동 스케줄', :Sch_exercise, TRUNC(SYSDATE) + INTERVAL '20' HOUR, TRUNC(SYSDATE) + INTERVAL '21' HOUR, '꾸준히 운동하는 습관을 만들어보자!')"""
             query_insert(connection, query=insert_query, id=id, Sch_exercise=result_string)
         else:
             print("포인트 2번")
