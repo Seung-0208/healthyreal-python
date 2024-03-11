@@ -32,14 +32,14 @@ class summaryAPI(Resource):
             cal_info_str = f"{cal_label}은 {seat_sexer_info}입니다." if cal_label and seat_sexer_info else ''
 
             content_parts = [
-                f"제목은 {item.get('stitle', '')}입니다." if item.get('stitle') else '',
-                f"시작일은 {item.get('start', '')[11:16]}입니다." if item.get('start') else '',
-                f"마감일은 {item.get('end', '')[11:16]}입니다." if item.get('end') else '',
+                f"{item.get('stitle', '')}는" if item.get('stitle') else '',
+                f"{item.get('start', '')[11:16]}부터" if item.get('start') else '',
+                f"{item.get('end', '')[11:16]}까지 입니다." if item.get('end') else '',
                 cal_info_str,
                 item.get('scontent', '') if item.get('scontent') else '',
-                f"출발지는 {item.get('sarea', '')}입니다." if item.get('sarea') else '',
-                f"목적지는 {item.get('sdest', '')}입니다." if item.get('sdest') else '',
-                f"메이트는 {item.get('smate', '')}입니다." if item.get('smate') else ''
+                f"{item.get('sarea', '')}에서 출발하며, " if item.get('sarea') else '',
+                f"{item.get('sdest', '')}에 도착합니다." if item.get('sdest') else '',
+                f"같이 가는 메이트는 {item.get('smate', '')}입니다." if item.get('smate') else ''
             ]
             content_str = ' '.join(part for part in content_parts if part)
             # 개별 항목 대신, 모든 항목을 하나의 큰 문자열로 추가합니다.
@@ -57,7 +57,7 @@ class summaryAPI(Resource):
                 "language": "ko",
                 "model": "general",
                 "tone": 2,
-                "summaryCount": 1
+                "summaryCount": 3
             }
         }
         response = requests.post(self.url, headers=self.headers, data=json.dumps(data).encode('UTF-8'))
