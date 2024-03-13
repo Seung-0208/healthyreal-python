@@ -33,11 +33,7 @@ class CreateImage(Resource):
     def post(self):
         prompt = request.json['message']  # 뷰에서 넘긴 메세지 받기
         id = request.json['id']  # 뷰에서 넘긴 메세지 받기
-        print('받은 메세지:', prompt)
-        print('받은 메세지:', id)
         image_path, image_name = generate_image(prompt, client, id)
-        print('보내는 메세지:', image_path)
-        print('보내는 메세지:', image_name)
         return jsonify({"image_url": image_path, "image_name": image_name})
 
 # 폴더 생성 함수

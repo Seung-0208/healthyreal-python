@@ -21,6 +21,7 @@ from exercise_crawling import exerciseCrawling
 from recommendMate import recommendMate
 from ttest import ttest
 from summary_api import summaryAPI
+from PoseDetector import PoseDetector
 
 
 #플라스크 앱 생성
@@ -50,6 +51,7 @@ api.add_resource(exerciseCrawling, '/exerciseCrawling')
 api.add_resource(recommendMate, '/recommendMate')
 api.add_resource(ttest, '/ttest')
 api.add_resource(summaryAPI, '/summaryAPI')
+api.add_resource(PoseDetector, '/PoseDetector')
 api.decorators=[CORS()]
 
 if __name__ == '__main__':

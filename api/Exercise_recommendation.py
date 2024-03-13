@@ -31,7 +31,7 @@ class recommendExercise(Resource):
             bodyparts = ['Calves', 'Adductors', 'Quadriceps', 'Hamstrings']
         elif content == 'Back':
             bodyparts = ['Lats', 'Lower Back', 'Middle Back']
-        elif content == 'randam':
+        elif content == 'random':
             bodyparts = df['BodyPart'].unique().tolist()  # 모든 BodyPart 중에서 선택
         else:
             bodyparts = [content]
