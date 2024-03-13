@@ -1,15 +1,73 @@
-from flask import jsonify, request
+from flask import request
 from flask_restful import Resource
-import cv2
-from ultralytics import YOLO
 import os
 import yt_dlp
+import cv2
 import numpy as np
+from ultralytics import YOLO
+from scipy.spatial.distance import cosine
+from PIL import ImageFont, ImageDraw, Image
 
 class PoseDetector(Resource):
     def __init__(self):
         # YOLOv8 모델을 초기화합니다. 'pose.pt'는 커스텀 학습된 모델 파일 경로입니다.
         self.model = YOLO('pose.pt')
+
+    def post(self):
+        video_url = request.json['video_url']
+        video_path = os.path.join('static', 'downloaded_video.mp4')
+        self.download_video(video_url, video_path)
+
+        print("생성된 비디오 경로", video_path)
+
+        #cap_webcam = cv2.VideoCapture(0)
+        #cap_video = cv2.VideoCapture(video_path)
+        cap_webcam = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # DirectShow를 사용하여 웹캠 열기
+        cap_video = cv2.VideoCapture(video_path, cv2.CAP_ANY)  # 가능한 모든 백엔드를 시도하여 비디오 열기
+
+        # 비디오의 FPS를 조절하기 위한 변수 설정
+        frame_interval = 5  # 15 FPS에 해당하는 간격을 조절하기 위해 사용
+        frame_count = 0
+
+        while True:
+            ret_webcam, frame_webcam = cap_webcam.read()
+            ret_video, frame_video = cap_video.read()
+
+            # 프레임 간격 조절을 통해 FPS를 감소시킵니다.
+            frame_count += 1
+            if frame_count % frame_interval != 0:
+                continue
+
+            if ret_webcam and ret_video:
+                results_webcam = self.model(frame_webcam)
+                results_video = self.model(frame_video)
+
+                keypoints_webcam, confidences_webcam = self.extract_keypoints_and_confidence(results_webcam)
+                keypoints_video, confidences_video = self.extract_keypoints_and_confidence(results_video)
+
+                similarity = self.calculate_cosine_similarity(keypoints_webcam, keypoints_video)
+                self.display_pose_accuracy(frame_webcam, similarity)  # 웹캠 이미지에 정확도 표시
+
+                # 자세 정확도를 이미지에 표시합니다.
+                frame_webcam_with_accuracy = self.display_pose_accuracy(frame_webcam, similarity)
+                # frame_video_with_accuracy = display_pose_accuracy(frame_video, similarity)  # 비디오 프레임에 적용할 경우
+
+                print(f"자세 정확도: {similarity}")
+
+                cv2.imshow('Webcam Pose', frame_webcam_with_accuracy)
+                # cv2.imshow('Webcam Pose', results_webcam[0].plot())
+                cv2.imshow('Video Pose', results_video[0].plot())
+
+            else:
+                print('Failed to capture video.')
+                break
+
+            if cv2.waitKey(1) != -1:
+                break
+
+        cap_webcam.release()
+        cap_video.release()
+        cv2.destroyAllWindows()
 
     def download_video(self, url, output_path):
         ydl_opts = {
@@ -19,73 +77,51 @@ class PoseDetector(Resource):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
-    def process_frame_for_pose(self, frame):
-        results = self.model(frame)
-        keypoints = None
-        # 키포인트 추출 로직 (YOLOv8 구현에 따라 다를 수 있음)
-        if hasattr(results, 'keypoints'):
-            keypoints = results.keypoints
-        return keypoints
 
-    def compare_poses(self, pose1, pose2):
-        # 두 포즈 사이의 유사도를 계산합니다.
-        # 이 예시에서는 단순히 포즈 벡터 간의 유클리드 거리를 사용합니다.
-        # 실제 구현에서는 포즈 비교를 위한 더 복잡한 메트릭을 사용할 수 있습니다.
-        dist = np.linalg.norm(pose1 - pose2)
-        similarity = np.exp(-dist)  # 거리가 작을수록 유사도가 높습니다.
-        return similarity
-
-    def calculate_pose_similarity(self, keypoints1, keypoints2):
-        # 포즈 유사도 계산 (키포인트 간 거리 및 각도 고려)
-        # 이 부분은 프로젝트의 요구 사항에 맞게 구체적으로 구현해야 합니다.
-        # 예제로, 두 키포인트 집합 간의 간단한 거리 유사도를 계산합니다.
-        if keypoints1 is None or keypoints2 is None:
+    def calculate_cosine_similarity(self, kp1, kp2):
+        if len(kp1) != len(kp2) or len(kp1) == 0:
             return 0
-        distance_sum = 0
-        for kp1, kp2 in zip(keypoints1, keypoints2):
-            distance_sum += np.linalg.norm(kp1 - kp2)
-        similarity = np.exp(-distance_sum)  # 예시: 거리에 기반한 유사도
-        return similarity
 
-    def capture_and_compare(self, video_path):
-        cap_downloaded = cv2.VideoCapture(video_path, cv2.CAP_DSHOW)
-        cap_webcam = cv2.VideoCapture(0)  # 웹캠
+        # 코사인 유사도 계산
+        kp1_flat = kp1.flatten()
+        kp2_flat = kp2.flatten()
+        similarity = 1 - cosine(kp1_flat, kp2_flat)
 
-        # 비디오의 FPS를 기반으로 5초마다 프레임을 처리합니다.
-        fps_downloaded = cap_downloaded.get(cv2.CAP_PROP_FPS)
-        fps_webcam = cap_webcam.get(cv2.CAP_PROP_FPS)
-        # 두 비디오 중 더 낮은 FPS를 기준으로 삼아, 5초마다의 프레임 인덱스를 계산합니다.
-        frame_interval = int(min(fps_downloaded, fps_webcam) * 5)
+        # 코사인 유사도를 백분율로 변환
+        percentage_similarity = similarity * 100
 
-        frame_count = 0
-        similarities = []  # 유사도를 저장하는 리스트
-        while True:
-            ret_downloaded, frame_downloaded = cap_downloaded.read()
-            ret_webcam, frame_webcam = cap_webcam.read()
+        return percentage_similarity
 
-            if not ret_downloaded or not ret_webcam:
-                break  # 둘 중 하나의 비디오가 끝나면 중단
+    def extract_keypoints_and_confidence(results):
+        keypoints = []
+        confidences = []
+        if hasattr(results[0], 'keypoints') and results[0].keypoints is not None:
+            kp_data = results[0].keypoints.data  # 키포인트 데이터
 
-            if frame_count % frame_interval == 0:
-                keypoints_downloaded = self.process_frame_for_pose(frame_downloaded)
-                keypoints_webcam = self.process_frame_for_pose(frame_webcam)
-                similarity = self.calculate_pose_similarity(keypoints_downloaded, keypoints_webcam)
-                similarities.append(similarity)  # 유사도를 리스트에 추가
-                current_time = frame_count / min(fps_downloaded, fps_webcam)
-                print(f"Time: {current_time:.2f}s, Similarity: {similarity:.4f}")
+            for kp in kp_data[0]:
+                x, y, conf = kp
+                if conf > 0.3:  # 신뢰도가 0.3 이상.
+                    keypoints.append([x.item(), y.item()])
+                    confidences.append(conf.item())
 
-            frame_count += 1
+        return np.array(keypoints), np.array(confidences)
 
-        cap_downloaded.release()
-        cap_webcam.release()
+    def display_pose_accuracy(frame, accuracy):
+        text = f"자세 정확도: {accuracy :.2f}"
 
-        # 유사도 리스트의 평균을 계산하여 반환합니다.
-        avg_similarity = np.mean(similarities) if similarities else 0
-        return avg_similarity
+        frame_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        draw = ImageDraw.Draw(frame_pil)
 
-    def post(self):
-        video_url = request.json['video_url']
-        video_path = os.path.join('static', 'downloaded_video.mp4')
-        self.download_video(video_url, video_path)
-        avg_similarity = self.capture_and_compare(video_path)
-        return jsonify({'average_similarity': avg_similarity})
+        font_path = "C:/Windows/Fonts/gulim.ttc"
+        font = ImageFont.truetype(font_path, 20)
+
+        # PIL 이미지에 텍스트를 그립니다.
+        draw.text((10, 30), text, font=font, fill=(0, 255, 0))
+
+        # PIL 이미지를 OpenCV 이미지로 다시 변환합니다.
+        frame = cv2.cvtColor(np.array(frame_pil), cv2.COLOR_RGB2BGR)
+
+        return frame
+
+
+
