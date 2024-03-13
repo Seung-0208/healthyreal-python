@@ -5,51 +5,30 @@ from flask_restful import Resource
 from flask import request
 from datetime import datetime, timedelta
 import json
+import numpy as np  # numpy 추가
 
 class food_recommend(Resource):
-    def post(self):
-        # db 연결
-        connection = db_conn()
-        userid = request.json['id']
-        meal_type = request.json['아침']
-        user_meals = data_Integration(connection, userid)
-        recommended_food = recommend_meal(user_meals, meal_type)
-        db_disconn(connection)
-        # return json.dumps({"recommended_food": recommended_food}, ensure_ascii=False), 200
     def get(self):
-        # db 연결
-        connection = db_conn()
+        connection = db_conn() # db 연결
         userid = request.args.get('id')
         meal_types = ['아침', '점심', '저녁']
         recommended_foods = []
         for meal_type in meal_types:
-            user_meals = data_Integration(connection, userid)
-            recommendation = recommend_meal(user_meals, meal_type)
+            user_meals = data_Integration(connection, userid) #사용자가 전일 먹었던 음식 제외
+            recommendation = recommend_meal(user_meals, meal_type) # 음식 추천 함수
             recommended_food = recommendation['RECOMMEND_FOOD']
             recipe_code = recommendation['RECIPECODE']
             recommended_foods.append({'MEAL_TYPE': meal_type, 'RECOMMEND_FOOD': recommended_food, 'RECIPECODE': recipe_code})
 
-            db_save(connection, userid, meal_type, recommended_food, recipe_code)
+            db_save(connection, userid, meal_type, recommended_food, recipe_code) #금일 추천받은 음식 DB에 저장
 
-        db_disconn(connection)
+        db_disconn(connection) # db 연결 해제
         print('추천된 음식 :', recommended_foods)
         # return json.dumps({"recommended_foods": recommended_foods}, ensure_ascii=False), 200
 
 def data_Integration(connection, userid):
-    # 어제의 날짜 계산
-    # 오늘 날짜
-    today = datetime.now().date()
-    # 어제 날짜
-    yesterday = today - timedelta(days=1)
-    # YYYY-MM-DD 형식의 문자열로 변환
-    yesterday_date = yesterday.strftime('%Y-%m-%d')
-    # 레시피와 재료 테이블을 조인한 결과를 데이터프레임으로 가져옴
-    recipe_ingredients_df = pd.read_sql_query("""select fl.category,fl.foodname,r.recipecode,ri.ingredient from foodlist fl 
-                                                    join recipe r on fl.foodname = r.foodname 
-                                                    join recipe_ingredients ri on r.recipecode = ri.recipecode""", connection)
-
-    # 레시피별로 그룹화하여 재료를 리스트로 변환
-    recipe_ingredients_grouped = recipe_ingredients_df.groupby(['RECIPECODE', 'FOODNAME'])['INGREDIENT'].apply(list).reset_index()
+    today = datetime.now().date() # 오늘 날짜
+    yesterday = today - timedelta(days=1) # 어제 날짜
 
     # 사용자가 먹은 음식 데이터 (전일 먹었던 음식 데이터는 전부 제외)
     user_meals_df = pd.read_sql_query(f"""SELECT er.*, r.recipe_title, fl.category, ri.ingredient 
@@ -59,21 +38,14 @@ def data_Integration(connection, userid):
                                                 JOIN recipe_ingredients ri ON er.eating_recipecode = ri.recipecode
                                                 WHERE er.id = '{userid}'
                                                 AND er.eating_foodname NOT IN (
-                                                    SELECT eating_foodname 
-                                                    FROM eating_record 
-                                                    WHERE id = 'rotkrlhh' 
+                                                    SELECT eating_foodname FROM eating_record WHERE id = '{userid}' 
                                                     AND TO_CHAR(EATING_DATE, 'YYYY-MM-DD') = TO_DATE('{yesterday}', 'YYYY-MM-DD')
                                                 )""", connection)
-
     # 사용자가 먹은 음식 데이터를 딕셔너리로 변환
     user_meals = user_meals_df.to_dict(orient='records')
-
     return user_meals
 
-
-import numpy as np  # numpy 추가
-
-# 추천 함수
+# 음식 추천 함수
 def recommend_meal(user_meals, meal_type):
     # meal_type에 따라 해당하는 음식 데이터를 추출
     filtered_user_meals = [meal for meal in user_meals if meal['MEALTYPE'] == meal_type]

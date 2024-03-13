@@ -33,7 +33,7 @@ def basic_setting(urllink):
     driver.get(urllink)  # form에 있는 액션 url
     time.sleep(2)  # 페이지가 완전히 로딩되도록 3초동안 기다림
 
-    # 분류 - 상황별 - 다이어트(6)
+    # 분류 - 상황별 - 다이어트(6)..
     Category = driver.find_element(By.XPATH, '//*[@id="id_search_category"]/table/tbody/tr[1]/td/div/div[2]/a[6]')
     category_text = Category.text
     print(f'카테고리 : {category_text}')
@@ -42,8 +42,6 @@ def basic_setting(urllink):
 
     # 레시피 제목 가져오기
     recipes = driver.find_elements(By.XPATH, '//*[@id="contents_area_full"]/ul/ul/li[*]')
-    # div[1] > a > span과 img (span 태그가 있으면 동영상 존재)
-    # div[2] > div[1]에는 타이틀 / div[2]에는 유저정보 / div[3]에는 조회수 & 별점
     get_recipe(driver, recipes, category_text)
 
 #레시피 정보 가져오기
@@ -89,8 +87,7 @@ def get_recipe(driver, recipes, category_text):
         recipeCode = url.split('=')[-1]
         time.sleep(3)
 
-
-        # 요리명 가져오기 -> 구조 변경으로 요리명 가져올 수가 없어서 제거
+        # 레시피 정보 크롤링 -> 구조 변경으로 요리명 가져올 수가 없어서 코드제거 후 따로 전처리 작업 진행
         try:
             cooking_orders = []  # 조리 순서를 담을 리스트를 생성합니다.
             step_number = 1  # 초기 스텝 번호
@@ -98,16 +95,15 @@ def get_recipe(driver, recipes, category_text):
                 xpath = '//*[@id="stepdescr{}"]'.format(step_number)
                 try:
                     Cooking_order = driver.find_element(By.XPATH, xpath)
-                    cooking_orders.append(Cooking_order.text.replace('\n', '-'))  # 조리 순서를 리스트에 추가합니다.
-                    # 다음 스텝으로 넘어가기 위해 스텝 번호를 증가시킵니다.
-                    step_number += 1
+                    cooking_orders.append(Cooking_order.text.replace('\n', '-'))  # 조리 순서를 리스트에 추가
+                    step_number += 1 # 다음 스텝으로 넘어가기 위해 스텝 번호를 증가
                 except NoSuchElementException:
                     break
             recipe_seq_str = '|| '.join(cooking_orders)
             print(f'조리 순서 : {recipe_seq_str}')
             recipe_image = driver.find_element(By.XPATH,'//*[@id="main_thumbs"]').get_attribute('src')
             print(f'이미지 링크 : {recipe_image}')
-
+            # DB에 해당 레시피가 존재하는지 확인 후, 존재하면 레시피 순서 업데이트, 존재하지 않으면 신규 등록
             select_query = "SELECT COUNT(*) FROM Recipe WHERE recipeCode = :recipeCode"
             select_result = query_select(connection, query=select_query, recipeCode=recipeCode)
             if select_result[0][0] == 0:
@@ -116,7 +112,7 @@ def get_recipe(driver, recipes, category_text):
                 query_insert(connection, query=insert_query, recipeCode=recipeCode, recipe_url=recipe_url,
                              recipe_title=recipe_title_value, recipe_img=recipe_image, recipe_seq=recipe_seq_str)
             else:
-                print("해당 레시피는 DB에 이미 존재하지만 업데이트 합니다.")
+                print("해당 레시피는 DB에 이미 존재하며, 레시피 순서를 보충하기 위해 업데이트 합니다.")
                 update_query = "UPDATE Recipe SET recipe_seq = :recipe_seq WHERE recipeCode = :recipeCode"
                 query_insert(connection, query=update_query, recipeCode=recipeCode, recipe_seq=recipe_seq_str)
                 print("업데이트 완료")
@@ -126,7 +122,7 @@ def get_recipe(driver, recipes, category_text):
         except NoSuchElementException:
             print("찾는 요소가 없습니다.")
             pass
-
+        # 레시피 세부 재료 크롤링 함수 실행
         recipe_info(connection, driver, wait, current_tab, recipeCode)
         ind += 1
     db_disconn(connection)
