@@ -29,6 +29,12 @@ class PoseDetector(Resource):
         frame_interval = 5  # 15 FPS에 해당하는 간격을 조절하기 위해 사용
         frame_count = 0
 
+        # 창의 이름과 크기를 설정합니다.
+        cv2.namedWindow('Webcam Pose', cv2.WINDOW_NORMAL)
+        cv2.namedWindow('Video Pose', cv2.WINDOW_NORMAL)
+        cv2.resizeWindow('Webcam Pose', 800, 600)
+        cv2.resizeWindow('Video Pose', 800, 600)
+
         while True:
             ret_webcam, frame_webcam = cap_webcam.read()
             ret_video, frame_video = cap_video.read()
@@ -70,12 +76,19 @@ class PoseDetector(Resource):
         cv2.destroyAllWindows()
 
     def download_video(self, url, output_path):
+        # output_path에 해당하는 파일이 이미 존재하는지 확인합니다.
+        if os.path.exists(output_path):
+            # 파일이 존재한다면 삭제합니다.
+            os.remove(output_path)
+            print(f"기존 파일 '{output_path}'를 삭제하였습니다.")
+
         ydl_opts = {
             'format': 'bestvideo',
             'outtmpl': output_path,
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
+            print(f"URL '{url}'로부터 비디오를 다운로드하고 '{output_path}'에 저장하였습니다.")
 
 
     def calculate_cosine_similarity(self, kp1, kp2):
