@@ -92,7 +92,7 @@ class PoseDetector(Resource):
 
         return percentage_similarity
 
-    def extract_keypoints_and_confidence(results):
+    def extract_keypoints_and_confidence(self, results):
         keypoints = []
         confidences = []
         if hasattr(results[0], 'keypoints') and results[0].keypoints is not None:
@@ -106,7 +106,7 @@ class PoseDetector(Resource):
 
         return np.array(keypoints), np.array(confidences)
 
-    def display_pose_accuracy(frame, accuracy):
+    def display_pose_accuracy(self, frame, accuracy):
         text = f"자세 정확도: {accuracy :.2f}"
 
         frame_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
